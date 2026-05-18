@@ -87,8 +87,11 @@ const handleDelete = async (id: number) => {
     await deleteProduct(id)
     ElMessage.success('删除成功')
     await loadProducts()
-  } catch {
-    // 取消
+  } catch (e: any) {
+    // ElMessageBox 取消时会抛出 'cancel'，不需要显示
+    if (e !== 'cancel' && e !== 'close') {
+      ElMessage.error(e.response?.data?.message || e.message || '删除失败')
+    }
   }
 }
 </script>
