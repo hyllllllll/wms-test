@@ -20,6 +20,18 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     Optional<Inventory> findByProductIdAndLocationCode(Long productId, String locationCode);
 
     /**
+     * 检查商品是否有库存记录
+     * @param productId 商品ID
+     * @return true 表示有关联库存
+     */
+    boolean existsByProductId(Long productId);
+
+    /**
+     * 统计商品的库存记录数
+     */
+    long countByProductId(Long productId);
+
+    /**
      * 分页查询库存列表
      * 关联 Product、Location、Warehouse 表获取完整信息
      * 

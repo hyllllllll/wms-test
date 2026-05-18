@@ -5,6 +5,7 @@ import com.wms.dto.ProductCreateRequest;
 import com.wms.dto.ProductResponse;
 import com.wms.dto.ProductUpdateRequest;
 import com.wms.entity.Product;
+import com.wms.repository.InventoryRepository;
 import com.wms.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 public class ProductService {
 
     private final ProductRepository productRepository;
+    private final InventoryRepository inventoryRepository;
 
     public List<ProductResponse> list(String keyword) {
         List<Product> products = productRepository.search(keyword);
@@ -67,10 +69,12 @@ public class ProductService {
 
     @Transactional
     public void delete(Long id) {
-        // ️ BUG 预埋点：没有校验该商品是否有关联库存
-        // 候选人需要在任务3中发现并修复此问题
         if (!productRepository.existsById(id)) {
             throw new BusinessException(404, "商品不存在");
+        }
+        // 检查是否有关联库存
+        if (inventoryRepository.existsByProductId(id)) {
+            throw new BusinessException("该商品存在关联库存，请先删除相关库存记录");
         }
         productRepository.deleteById(id);
         log.info("删除商品: id={}", id);
