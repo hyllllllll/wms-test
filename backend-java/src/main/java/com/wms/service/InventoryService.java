@@ -1,20 +1,26 @@
 package com.wms.service;
 
 import com.wms.common.BusinessException;
+import com.wms.common.PageResult;
 import com.wms.dto.InboundOrderCreateRequest;
 import com.wms.dto.InboundOrderResponse;
 import com.wms.dto.InventoryResponse;
 import com.wms.entity.InboundOrder;
 import com.wms.entity.InboundOrderItem;
 import com.wms.entity.Inventory;
+import com.wms.entity.Location;
 import com.wms.entity.Product;
+import com.wms.entity.Warehouse;
 import com.wms.repository.InboundOrderItemRepository;
 import com.wms.repository.InboundOrderRepository;
 import com.wms.repository.InventoryRepository;
 import com.wms.repository.LocationRepository;
 import com.wms.repository.ProductRepository;
+import com.wms.repository.WarehouseRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +46,7 @@ public class InventoryService {
     private final InboundOrderItemRepository inboundOrderItemRepository;
     private final ProductRepository productRepository;
     private final LocationRepository locationRepository;
+    private final WarehouseRepository warehouseRepository;
 
     /**
      * 入库单创建
@@ -204,11 +211,75 @@ public class InventoryService {
     }
 
     /**
-     * 库存查询 — 候选人实现
+     * 库存查询
+     * 支持按商品名称/SKU模糊搜索、按仓库筛选和分页
+     *
+     * @param keyword 商品名称或SKU搜索关键字
+     * @param warehouseId 仓库ID筛选（可选）
+     * @param page 页码（从1开始）
+     * @param pageSize 每页条数
+     * @return 分页结果
      */
-    public List<InventoryResponse> queryInventory(String keyword, Long warehouseId,
-                                                   int page, int pageSize) {
-        // TODO: 候选人实现
-        throw new UnsupportedOperationException("请实现库存查询功能（任务2）");
+    public PageResult<InventoryResponse> queryInventory(String keyword, Long warehouseId,
+                                                        int page, int pageSize) {
+        // 限制pageSize最大值
+        int maxPageSize = Math.min(pageSize, 100);
+        PageRequest pageable = PageRequest.of(page - 1, maxPageSize);
+
+        // 执行分页查询
+        Page<Inventory> pageResult = inventoryRepository.findInventoryWithFilters(
+                keyword, warehouseId, pageable);
+
+        // 转换为响应DTO
+        List<InventoryResponse> list = pageResult.getContent().stream()
+                .map(this::toInventoryResponse)
+                .toList();
+
+        // 构建分页结果
+        PageResult<InventoryResponse> result = new PageResult<>();
+        result.setList(list);
+        result.setPage(page);
+        result.setPageSize(maxPageSize);
+        result.setTotal(pageResult.getTotalElements());
+
+        log.info("库存查询: keyword={}, warehouseId={}, page={}, total={}",
+                keyword, warehouseId, page, pageResult.getTotalElements());
+
+        return result;
+    }
+
+    /**
+     * 将库存实体转换为响应DTO
+     * 关联查询商品名称、SKU、仓库名称
+     */
+    private InventoryResponse toInventoryResponse(Inventory inventory) {
+        // 查询商品信息
+        String productName = "";
+        String sku = "";
+        Product product = productRepository.findById(inventory.getProductId()).orElse(null);
+        if (product != null) {
+            productName = product.getName();
+            sku = product.getSku();
+        }
+
+        // 查询仓库名称
+        String warehouseName = "";
+        Location location = locationRepository.findByCode(inventory.getLocationCode()).orElse(null);
+        if (location != null) {
+            Warehouse warehouse = warehouseRepository.findById(location.getWarehouseId()).orElse(null);
+            if (warehouse != null) {
+                warehouseName = warehouse.getName();
+            }
+        }
+
+        return InventoryResponse.builder()
+                .productId(inventory.getProductId())
+                .productName(productName)
+                .sku(sku)
+                .locationCode(inventory.getLocationCode())
+                .warehouseName(warehouseName)
+                .quantity(inventory.getQuantity())
+                .updatedAt(inventory.getUpdatedAt())
+                .build();
     }
 }

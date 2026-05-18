@@ -63,14 +63,21 @@ public class InventoryController {
 
     /**
      * 库存查询
+     * 支持按商品名称/SKU模糊搜索、按仓库筛选和分页
+     *
+     * @param keyword 商品名称或SKU搜索关键字（可选）
+     * @param warehouseId 仓库ID筛选（可选）
+     * @param page 页码，默认1
+     * @param pageSize 每页条数，默认20，最大100
      */
     @GetMapping("/inventory")
-    public ApiResponse<List<InventoryResponse>> queryInventory(
+    public ApiResponse<PageResult<InventoryResponse>> queryInventory(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long warehouseId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int pageSize) {
-        // TODO: 实现库存查询（任务2）
-        return ApiResponse.error(501, "请实现库存查询功能（任务2）");
+        PageResult<InventoryResponse> result = inventoryService.queryInventory(
+                keyword, warehouseId, page, pageSize);
+        return ApiResponse.success(result);
     }
 }
