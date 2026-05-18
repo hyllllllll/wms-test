@@ -292,7 +292,7 @@ onMounted(() => {
       </div>
 
       <!-- 空状态提示 -->
-      <el-empty v-if="items.length === 0" description="请点击"添加明细"按钮添加入库商品" />
+      <el-empty v-if="items.length === 0" description='请点击"添加明细"按钮添加入库商品' />
 
       <!-- 提交按钮 -->
       <div style="margin-top: 20px">
