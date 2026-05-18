@@ -9,7 +9,7 @@
  * 4. 支持分页
  * 5. 搜索防抖处理
  */
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getInventory, getWarehouses, type InventoryItem, type Warehouse } from '@/api'
 
@@ -68,11 +68,6 @@ const handleSearch = () => {
   }, 300)
 }
 
-// 监听搜索条件变化，自动触发搜索
-watch([keyword, warehouseId], () => {
-  handleSearch()
-})
-
 // 分页切换
 const handlePageChange = (newPage: number) => {
   page.value = newPage
@@ -111,7 +106,7 @@ onMounted(() => {
         placeholder="搜索商品名称/SKU..."
         style="width: 300px"
         clearable
-        @keyup.enter="loadInventory"
+        @keyup.enter="handleSearch"
       />
       <el-select
         v-model="warehouseId"
@@ -126,7 +121,7 @@ onMounted(() => {
           :value="wh.id"
         />
       </el-select>
-      <el-button type="primary" @click="loadInventory">查询</el-button>
+      <el-button type="primary" @click="handleSearch">查询</el-button>
     </div>
 
     <!-- 表格 -->
